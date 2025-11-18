@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>🔧 Análise OS × Criticidade × Técnicos</title>
+   <link rel="stylesheet" type="text/css" href="final.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+</head>
+<body class="bg-gray-50 min-h-screen p-6">
+  <!-- Logo Container -->
+  <div class="logo-container">
+    <img src ="./img/ponto rubro.png" alt="Ponto Rubro" class="company-logo">
+    <img src="./img/snai logo.png" alt="SENAI" class="logo">
+    <img src="./img/fsn logo.png" alt="Fundação Shunji Nishimura" class="logo">
+    <img src="./img/ZDA.png" alt="ZDA Analytics" class="logo">
+  </div>
+
+  <div class="max-w-7xl mx-auto mt-6">
+    <h1 class="text-3xl font-bold text-red-700 text-center mb-6">📊 Análise OS × Criticidade × Técnicos (DEBUG)</h1>
+    <!-- Tabs -->
+    <div class="mb-4 border-b border-gray-200">
+      <button class="tab-button active" data-tab="main">Análise OS</button>
+      <button class="tab-button" data-tab="calendar">Calendário PCP</button>
+    </div>
+    <!-- Main Analysis Tab -->
+    <div id="main-tab" class="tab-content active">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div>
+          <h2 class="font-semibold">1) Controle de Bens (Criticidade)</h2>
+          <input type="file" id="criticidadeFile" accept=".xlsx,.xls">
+          
+        </div>
+        <div>
+          <h2 class="font-semibold">2) Ordens de Serviço (TOTVS)</h2>
+          <input type="file" id="totvsFile" accept=".xlsx,.xls">
+          
+        </div>
+        <div>
+          <h2 class="font-semibold">3) Disponibilidade Técnicos</h2>
+          <input type="file" id="tecnicosFile" accept=".xlsx,.xls">
+          
+        </div>
+        <div>
+          <h2 class="font-semibold">4) Funcionários × Máquinas</h2>
+          <input type="file" id="funciFile" accept=".xlsx,.xls">
+          
+        </div>
+      </div>
+      <button id="processBtn" disabled class="bg-red-600 text-white px-4 py-2 rounded-lg w-full mb-4">Processar</button>
+      <div class="mt-4 text-center">
+        <button id="scrollToCalendarBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg">
+          Ir para Calendário
+        </button>
+      </div>
+      <div id="resultsSection" class="hidden">
+        <div class="overflow-x-auto bg-white shadow rounded-lg p-3">
+          <table id="resultsTable" class="min-w-full text-sm">
+            <thead class="header-sticky"></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- Calendar Tab -->
+    <div id="calendar-tab" class="tab-content">
+      <div class="mb-4">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Calendário de Produção e Manutenção</h2>
+        
+        <!-- Legend -->
+        <div class="legend-container">
+          <div class="legend-title">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2Z" stroke="#dc2626" stroke-width="2"/>
+              <path d="M10 6V10L13 13" stroke="#dc2626" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Legenda de Cores do Calendário PCP
+          </div>
+          
+          <!-- Visual Legend Cards -->
+          <div class="legend-grid" style="margin-bottom: 12px;">
+            <div class="legend-item">
+              <div class="legend-color legend-shift-a"></div>
+              <span class="legend-text">Turno A - Produção</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color legend-shift-b"></div>
+              <span class="legend-text">Turno B - Produção</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color legend-shift-c"></div>
+              <span class="legend-text">Turno C - Produção</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color legend-off"></div>
+              <span class="legend-text">Sem Produção</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color legend-maintenance"></div>
+              <span class="legend-text">Manutenção Programada</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color legend-scheduled"></div>
+              <span class="legend-text">Manutenção Agendada</span>
+            </div>
+          </div>
+          
+          <!-- Detailed Table -->
+          <table class="pcp-legend-table">
+            <thead>
+              <tr>
+                <th>Cor</th>
+                <th>Tipo de Turno</th>
+                <th>Descrição</th>
+                <th>Ação Permitida</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="pcp-color-cell legend-shift-a"></div></td>
+                <td><strong>Turno A</strong></td>
+                <td>Produção ativa no turno A</td>
+                <td style="color: #dc2626; font-weight: 600;">❌ Manutenção NÃO permitida</td>
+              </tr>
+              <tr>
+                <td><div class="pcp-color-cell legend-shift-b"></div></td>
+                <td><strong>Turno B</strong></td>
+                <td>Produção ativa no turno B</td>
+                <td style="color: #dc2626; font-weight: 600;">❌ Manutenção NÃO permitida</td>
+              </tr>
+              <tr>
+                <td><div class="pcp-color-cell legend-shift-c"></div></td>
+                <td><strong>Turno C</strong></td>
+                <td>Produção ativa no turno C</td>
+                <td style="color: #dc2626; font-weight: 600;">❌ Manutenção NÃO permitida</td>
+              </tr>
+              <tr>
+                <td><div class="pcp-color-cell legend-off"></div></td>
+                <td><strong>Sem Produção</strong></td>
+                <td>Turno sem atividade produtiva</td>
+                <td style="color: #10b981; font-weight: 600;">✅ Disponível para manutenção</td>
+              </tr>
+              <tr>
+                <td><div class="pcp-color-cell legend-maintenance"></div></td>
+                <td><strong>Manutenção Programada</strong></td>
+                <td>Manutenção previamente programada</td>
+                <td style="color: #f59e0b; font-weight: 600;">⚠️ Ocupado com manutenção</td>
+              </tr>
+              <tr>
+                <td><div class="pcp-color-cell legend-scheduled"></div></td>
+                <td><strong>Manutenção Agendada</strong></td>
+                <td>Manutenção agendada pelo sistema</td>
+                <td style="color: #3b82f6; font-weight: 600;">📋 OS em execução</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div id="calendarSection" class="hidden">
+          <div class="overflow-x-auto bg-white shadow rounded-lg p-3">
+            <table id="calendarTable" class="w-full text-sm border-collapse">
+              <thead id="calendarHeader"></thead>
+              <tbody id="calendarBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="calendarPlaceholder" class="text-center py-10 text-gray-500">
+          Processar os arquivos primeiro para visualizar o calendário.
+        </div>
+      </div>
+    </div>
+  </div>
+<script>
+/* Globals */
+let critMap = new Map();
+let tecnicosDisponiveisRaw = []; // { linha, status, tecnicosArray }
+let funciMapLinhaToTec = new Map(); // linha -> Set(tecnico)
+let funciMapBemToLinha = new Map(); // bem -> Set(linha)
+let processedData = []; // Store the processed OS data
+let pcpSchedule = []; // Store the PCP schedule data with shifts
+/* Tab Switching */
+document.querySelectorAll('.tab-button').forEach(button => {
+  button.addEventListener('click', () => {
+    const tabId = button.getAttribute('data-tab');
+    // Update active tab button
+    document.querySelectorAll('.tab-button').forEach(btn => {
+      btn.classList.toggle('active', btn === button);
+    });
+    // Show active tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+      content.classList.toggle('active', content.id === `${tabId}-tab`);
+    });
+  });
+});
+/* Listeners */
+document.querySelectorAll("#criticidadeFile, #totvsFile, #tecnicosFile, #funciFile")
+  .forEach(el => el.addEventListener("change", checkReady));
+document.getElementById("processBtn").addEventListener("click", processAll);
+document.getElementById("scrollToCalendarBtn").addEventListener("click", () => {
+  // Switch to calendar tab and scroll
+  document.querySelectorAll('.tab-button').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === 'calendar');
+  });
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.toggle('active', content.id === 'calendar-tab');
+  });
+  document.getElementById("calendar-tab").scrollIntoView({ behavior: 'smooth' });
+});
+function checkReady(){
+  const ok = ["criticidadeFile","totvsFile","tecnicosFile","funciFile"].every(id => document.getElementById(id).files.length);
+  document.getElementById("processBtn").disabled = !ok;
+}
+/* Helpers */
+function normalize(v){ return v==null ? "" : v.toString().trim(); }
+function normalizeName(v){ return normalize(v).toUpperCase(); }
+/* Simplify for matching: remove non alnum and collapse spaces */
+function simplify(v){ return normalizeName(v).replace(/[^A-Z0-9]/g, " ").replace(/\s+/g," ").trim(); }
+/* Read XLSX to array-of-arrays */
+function readXLSX(file){
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval: "" });
+        resolve(rows);
+      } catch(err){
+        reject(err);
+      }
+    };
+    r.onerror = ()=> reject(new Error("Erro ao ler arquivo"));
+    r.readAsArrayBuffer(file);
+  });
+}
+/* Build CritMap (Controle de Bens) - Linha 8: Col F->index 5, G->index 6 */
+function buildCritMap(rows){
+  critMap.clear();
+  console.log("buildCritMap: total rows:", rows.length);
+  for(let i=8;i<rows.length;i++){
+    const rawTag = rows[i][5];
+    const rawCrit = rows[i][6];
+    const tag = normalizeName(rawTag);
+    const crit = normalize(rawCrit).toUpperCase() || "N/A";
+    if(tag) critMap.set(tag, crit);
+  }
+  console.log("Criticidade mapa (exemplos 10):", Array.from(critMap.entries()).slice(0,20));
+}
+/* Build Funcionarios x Maquinas maps (linha1): Col A bem(index0), D linha(index3), E manutentor(index4) */
+function buildFunciMaps(rows){
+  funciMapLinhaToTec.clear();
+  funciMapBemToLinha.clear();
+  console.log("buildFunciMaps: total rows:", rows.length);
+  for(let i=1;i<rows.length;i++){
+    const bem = normalizeName(rows[i][0]); // A
+    const linha = normalize(rows[i][3]);   // D
+    const tec = normalizeName(rows[i][4]); // E
+    if(!linha || !tec) continue;
+    const sLinha = simplify(linha);
+    // linha->tecnicos
+    if(!funciMapLinhaToTec.has(sLinha)) funciMapLinhaToTec.set(sLinha, new Set());
+    funciMapLinhaToTec.get(sLinha).add(tec);
+    // bem->linha
+    if(bem){
+      const sBem = simplify(bem);
+      if(!funciMapBemToLinha.has(sBem)) funciMapBemToLinha.set(sBem, new Set());
+      funciMapBemToLinha.get(sBem).add(sLinha);
+    }
+  }
+  console.log("funciMapLinhaToTec (sample):");
+  for(const [k,v] of funciMapLinhaToTec.entries()) console.log("  linhaKey:", k, "-> tecnicos:", Array.from(v).slice(0,10));
+  console.log("funciMapBemToLinha (sample):", Array.from(funciMapBemToLinha.entries()).slice(0,20));
+}
+/* Build Disponibilidade Tecnicos (linha3): Col A index0 Linha, Col D index3 Status, Col E index4 tecnicos */
+function buildTecDisponiveis(rows){
+  tecnicosDisponiveisRaw = [];
+  console.log("buildTecDisponiveis: total rows:", rows.length);
+  for(let i=3;i<rows.length;i++){
+    const linhaRaw = normalize(rows[i][0]); // A
+    const statusRaw = normalize(rows[i][3]); // D
+    const tecnicosRaw = normalize(rows[i][4]); // E
+    if(!linhaRaw) continue;
+    const sLinha = simplify(linhaRaw);
+    const status = statusRaw.toUpperCase();
+    // Only store DISPONÍVEL
+    if(status.includes("DISP")){
+      const arr = tecnicosRaw.split(/[,;\/]+/).map(t=> normalizeName(t)).filter(Boolean);
+      tecnicosDisponiveisRaw.push({ linhaRaw, sLinha, status, tecnicosArray: arr });
+    }
+  }
+  console.log("tecnicosDisponiveisRaw (sample):", tecnicosDisponiveisRaw.slice(0,30));
+}
+/* Merge TOTVS (linha7): C index2 Tag, E index4 Servico, F index5 NomeServico, I index8 DataAbertura */
+function mergeDataTOTVS(rows){
+  const out = [];
+  console.log("mergeDataTOTVS: total rows:", rows.length);
+  for(let i=7;i<rows.length;i++){
+    const tagRaw = rows[i][2];
+    const servico = normalize(rows[i][4]);
+    const nomeServico = normalize(rows[i][5]);
+    const data = normalize(rows[i][8]);
+    if(!tagRaw) continue;
+    const tag = normalizeName(tagRaw);
+    out.push({ TAG: tag, Servico: servico, NomeServico: nomeServico, DataAbertura: data, Criticidade: findCriticidade(tag), Backlog: calcBacklog(data) });
+  }
+  console.log("TOTVS extraído (sample 20):", out.slice(0,20));
+  return out;
+}
+function findCriticidade(tag){
+  const s = normalizeName(tag);
+  if(critMap.has(s)) return critMap.get(s);
+  // partial search
+  for(const [k,v] of critMap.entries()){
+    if(s.includes(k) || k.includes(s)) return v;
+  }
+  return "N/A";
+}
+/* Group duplicate TAGs (concat services) */
+function mergeDuplicateTags(data){
+  const map = new Map();
+  data.forEach(r=>{
+    const key = simplify(r.TAG);
+    if(!map.has(key)) {
+      map.set(key, { TAG: r.TAG, Servicos: [r.Servico], NomesServicos: [r.NomeServico], DataMaisAntiga: r.DataAbertura, Criticidade: r.Criticidade, QtdeOS: 1 });
+    } else {
+      const ex = map.get(key);
+      ex.Servicos.push(r.Servico);
+      ex.NomesServicos.push(r.NomeServico);
+      ex.QtdeOS++;
+      const d1 = parseDate(ex.DataMaisAntiga), d2 = parseDate(r.DataAbertura);
+      if(d2 && (!d1 || d2 < d1)) ex.DataMaisAntiga = r.DataAbertura;
+    }
+  });
+  const arr = Array.from(map.values()).map(r=>({
+    TAG: r.TAG,
+    Servicos: [...new Set(r.Servicos)].filter(Boolean).join("; "),
+    NomesServicos: [...new Set(r.NomesServicos)].filter(Boolean).join("; "),
+    DataMaisAntiga: r.DataMaisAntiga,
+    Criticidade: r.Criticidade,
+    QtdeOS: r.QtdeOS,
+    Backlog: calcBacklog(r.DataMaisAntiga)
+  }));
+  console.log("Grouped TAGs count:", arr.length);
+  return arr;
+}
+/* Add Tecnicos Disponiveis and Elegiveis with debug logs */
+function addTecnicosDisponiveisEEligiveis(data){
+  console.log("Beginning cross-check technicians for", data.length, "rows...");
+  return data.map(row=>{
+    const sTag = simplify(row.TAG);
+    // 1) Find lines associated with this TAG from funci map (bem->linha)
+    const linhasFromBem = funciMapBemToLinha.get(sTag) ? Array.from(funciMapBemToLinha.get(sTag)) : [];
+    // 2) fallback textual search: look for linha keys that appear in TAG or in service text
+    const searchText = (row.TAG + " " + row.Servicos + " " + row.NomesServicos).toUpperCase();
+    const linhasFromText = [];
+    for(const linhaKey of funciMapLinhaToTec.keys()){
+      if(searchText.includes(linhaKey) || linhaKey.includes(sTag)) linhasFromText.push(linhaKey);
+      else {
+        // also try simpler inclusion: compare tokens
+        const sTagShort = sTag.split(" ").slice(-1)[0]; // last token
+        if(sTagShort && linhaKey.includes(sTagShort)) linhasFromText.push(linhaKey);
+      }
+    }
+    const linhasSet = new Set([...linhasFromBem, ...linhasFromText]);
+    const linhas = Array.from(linhasSet);
+    // Debug:
+    console.log("Row TAG:", row.TAG, "| simplified:", sTag);
+    console.log("  linhasFromBem:", linhasFromBem, "linhasFromText:", linhasFromText, "=> chosen linhas:", linhas);
+    // collect available technicians for found linhas (must be status DISP)
+    const dispon = new Set();
+    linhas.forEach(l => {
+      const matchedDisponEntries = tecnicosDisponiveisRaw.filter(e => e.sLinha === l);
+      console.log("   dispon entries for linhaKey", l, "=>", matchedDisponEntries);
+      matchedDisponEntries.forEach(e => e.tecnicosArray.forEach(t => dispon.add(t)));
+    });
+    // authorized (who can operate that linha)
+    const autorizados = new Set();
+    linhas.forEach(l => {
+      const s = funciMapLinhaToTec.get(l);
+      if(s) s.forEach(t => autorizados.add(t));
+    });
+    // elegiveis = intersection dispon ∩ autorizados
+    const disponArr = Array.from(dispon);
+    const elegiveis = disponArr.filter(t => autorizados.has(t));
+    console.log("  disponibilizados (collected):", disponArr);
+    console.log("  autorizados (collected):", Array.from(autorizados));
+    console.log("  elegiveis (intersection):", elegiveis);
+    return {
+      ...row,
+      Linha: linhas.length ? linhas.join(", ") : "—",
+      TecnicosDisponiveis: disponArr.join("; ") || "Nenhum técnico disponível",
+      TecnicosElegiveis: elegiveis.join("; ") || "Nenhum técnico elegível"
+    };
+  });
+}
+/* Sorting */
+function sortByCriticidadeAndBacklog(data){
+  const ordem = { "A":1, "B":2, "C":3, "N/A":4 };
+  return data.sort((a,b)=>{
+    const ca = ordem[a.Criticidade] || 5, cb = ordem[b.Criticidade] || 5;
+    if(ca !== cb) return ca - cb;
+    const ba = parseBacklogDays(a.Backlog), bb = parseBacklogDays(b.Backlog);
+    return bb - ba;
+  });
+}
+function parseBacklogDays(backlog){
+  if(!backlog) return 0;
+  const m = backlog.match(/(\d+)/);
+  return m ? parseInt(m[1]) : 0;
+}
+/* Dates / backlog */
+function calcBacklog(d){
+  const date = parseDate(d);
+  if(!date) return "—";
+  const diff = Math.floor((new Date() - date) / (1000*60*60*24));
+  return diff + " dias";
+}
+function parseDate(v){
+  if(!v) return null;
+  const n = parseFloat(v);
+  if(!isNaN(n) && n > 30000) return new Date((n - 25569)*86400*1000);
+  const s = v.toString();
+  const p = s.split(/[\/\-]/);
+  if(p.length === 3){
+    const day = parseInt(p[0]), month = parseInt(p[1]), year = p[2].length===2 ? 2000+parseInt(p[2]) : parseInt(p[2]);
+    if(day && month && year) return new Date(year, month-1, day);
+  }
+  return null;
+}
+/* Display results */
+function displayResults(data){
+  document.getElementById("resultsSection").classList.remove("hidden");
+  const table = document.getElementById("resultsTable");
+  const head = table.querySelector("thead"), body = table.querySelector("tbody");
+  head.innerHTML = ""; body.innerHTML = "";
+  const headers = ["TAG","Criticidade","QtdeOS","Servicos","NomesServicos","DataMaisAntiga","Backlog","Linha","TecnicosDisponiveis","TecnicosElegiveis"];
+  const trh = document.createElement("tr");
+  headers.forEach(h=>{ const th=document.createElement("th"); th.textContent=h; th.className="px-3 py-2 text-left"; trh.appendChild(th); });
+  head.appendChild(trh);
+  data.forEach(r=>{
+    const tr = document.createElement("tr");
+    const cclass = r.Criticidade==="A" ? "crit-A" : r.Criticidade==="B" ? "crit-B" : r.Criticidade==="C" ? "crit-C" : "crit-NA";
+    headers.forEach(h=>{
+      const td = document.createElement("td");
+      td.textContent = r[h] || "";
+      td.className = "px-3 py-2 " + cclass;
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+  // Store processed data for calendar
+  processedData = data;
+}
+/* Load PCP Schedule from the provided data */
+function loadPCPSchedule() {
+  // Extract the PCP schedule from the provided Excel data structure
+  // The schedule starts from row 4 (index 4), with days in columns C through W (indices 2-22)
+  // Days are in row 3 (index 2): Domingo (C), Segunda (D), ..., Sábado (W)
+  // Production lines are in column A (index 0)
+  // Availability is in columns B, C, D (shifts A, B, C) for each day
+  // We'll simplify by considering a day available if any shift (A, B, C) is "SIM"
+  // Simulated PCP schedule based on the provided data structure
+  // In a real scenario, this would be read from the uploaded Excel file
+  const pcpData = [
+    // ["CANDY BAR: LINHA 1", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", ""],
+    // ["CANDY BAR: LINHA 2", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", ""],
+    // ...
+    // For demonstration, we'll hardcode the schedule based on the provided 
+    ["CANDY BAR: LINHA 1", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", "SIM", ""],
+    ["CANDY BAR: LINHA 2", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", ""],
+    ["CANDY BAR: LINHA 3", "", "", "", "SIM", "", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "", "", "SIM", "SIM", "", "SIM", "SIM", ""],
+    ["MARSHMALLOW 2", "", "", "", "SIM", "SIM", "", "SIM", "", "", "SIM", "", "", "SIM", "SIM", "", "", "", "", "", "", ""],
+    ["Forno Placa", "", "", "", "SIM", "SIM", "", "SIM", "", "", "SIM", "", "", "SIM", "SIM", "", "", "", "", "", "", ""],
+    ["MOLDADOS 1", "", "", "", "", "", "", "", "", "", "", "", "", "SIM", "", "", "SIM", "", "", "SIM", "", ""],
+    ["MOLDADOS 3", "", "", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "", "", "SIM", "", "", "SIM", "", "", "SIM", "", ""],
+    ["MONTAGEM", "", "", "", "SIM", "", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "", "", "SIM", "SIM", "", "SIM", "SIM", ""],
+    ["EMBALADORA VERTICAL", "", "", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", ""],
+    ["LINHA CHIPS KIBEDD 25KG", "", "", "", "", "", "", "", "", "", "", "", "", "SIM", "SIM", "", "SIM", "SIM", "", "SIM", "SIM", ""],
+    ["LINHA CHIPS GOTAS/ CHIPS", "", "", "", "MANUTENÇÃO", "", "", "SIM", "SIM", "", "", "", "", "", "", "", "", "", "", "", "", ""],
+    ["PIPOCA", "", "", "", "SIM", "", "", "SIM", "", "", "SIM", "", "", "SIM", "", "", "SIM", "", "", "", "", ""],
+    ["DIATT", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "SIM", "", ""],
+  ];
+  pcpSchedule = [];
+  const dayHeaders = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]; // Only 7 days for our view
+  pcpData.forEach(row => {
+    const linha = row[0];
+    if (!linha) return; // Skip empty lines
+    const dias = [];
+    // Process 7 days (columns C through I in original data, indices 2-8)
+    // Each day has 3 shifts: A, B, C
+    for (let dayIdx = 0; dayIdx < 7; dayIdx++) { // 7 days
+      const shiftAIndex = 2 + (dayIdx * 3); // A: C(2), F(5), I(8), L(11), O(14), R(17), U(20)
+      const shiftBIndex = 3 + (dayIdx * 3); // B: D(3), G(6), J(9), M(12), P(15), S(18), V(21)
+      const shiftCIndex = 4 + (dayIdx * 3); // C: E(4), H(7), K(10), N(13), Q(16), T(19), W(22)
+      const shiftA = row[shiftAIndex] ? normalize(row[shiftAIndex]).toUpperCase() : "";
+      const shiftB = row[shiftBIndex] ? normalize(row[shiftBIndex]).toUpperCase() : "";
+      const shiftC = row[shiftCIndex] ? normalize(row[shiftCIndex]).toUpperCase() : "";
+      // Check if any shift is available (SIM) or if it's a scheduled maintenance
+      const hasProduction = (shiftA === "SIM" || shiftB === "SIM" || shiftC === "SIM");
+      const isMaintenance = (shiftA === "MANUTENÇÃO" || shiftB === "MANUTENÇÃO" || shiftC === "MANUTENÇÃO");
+      dias.push({
+        shifts: {
+          A: shiftA,
+          B: shiftB,
+          C: shiftC
+        },
+        hasProduction: hasProduction,
+        isMaintenance: isMaintenance,
+        availableForMaintenance: !hasProduction && !isMaintenance
+      });
+    }
+    pcpSchedule.push({ linha: linha, dias: dias });
+  });
+  console.log("PCP Schedule loaded:", pcpSchedule);
+  // Generate calendar view
+  generateCalendar();
+}
+/* Generate Calendar View */
+function generateCalendar() {
+  if (processedData.length === 0) {
+    console.log("No processed data available for calendar");
+    return;
+  }
+  document.getElementById("calendarPlaceholder").classList.add("hidden");
+  document.getElementById("calendarSection").classList.remove("hidden");
+  const calendarBody = document.getElementById("calendarBody");
+  const calendarHeader = document.getElementById("calendarHeader");
+  // Clear existing content
+  calendarBody.innerHTML = "";
+  calendarHeader.innerHTML = "";
+  // Create header row with day names and shift indicators
+  const headerRow = document.createElement("tr");
+  const dayHeaders = ["Linha", "Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  dayHeaders.forEach(day => {
+    const th = document.createElement("th");
+    th.textContent = day;
+    th.className = "calendar-day-header border";
+    headerRow.appendChild(th);
+  });
+  calendarHeader.appendChild(headerRow);
+  // Create sub-header for shifts
+  const subHeaderRow = document.createElement("tr");
+  const subHeaders = ["", "A/B/C", "A/B/C", "A/B/C", "A/B/C", "A/B/C", "A/B/C", "A/B/C"];
+  subHeaders.forEach(shift => {
+    const th = document.createElement("th");
+    th.textContent = shift;
+    th.className = "calendar-day-header border text-xs";
+    subHeaderRow.appendChild(th);
+  });
+  calendarHeader.appendChild(subHeaderRow);
+  // Get the OS sorted by priority (criticality and backlog)
+  let sortedOS = [...processedData];
+  // Create rows for each production line
+  pcpSchedule.forEach((line, lineIndex) => {
+    const row = document.createElement("tr");
+    // Line name cell
+    const lineCell = document.createElement("td");
+    lineCell.textContent = line.linha;
+    lineCell.className = "border p-2 bg-gray-50 font-medium";
+    row.appendChild(lineCell);
+    // Day cells with shifts
+    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+      const dayInfo = line.dias[dayIndex];
+      // Create a container cell for the day
+      const dayCell = document.createElement("td");
+      dayCell.className = "calendar-day";
+      // Create a container for shifts
+      const shiftsContainer = document.createElement("div");
+      shiftsContainer.className = "flex flex-col h-full";
+      // Process each shift (A, B, C)
+      const shiftKeys = ['A', 'B', 'C'];
+      shiftKeys.forEach(shiftKey => {
+        const shiftValue = dayInfo.shifts[shiftKey];
+        const shiftCell = document.createElement("div");
+        if (shiftValue === "SIM") {
+          // Production shift - green for A, blue for B, purple for C
+          shiftCell.className = `shift-cell shift-${shiftKey.toLowerCase()}`;
+          shiftCell.textContent = shiftValue;
+        } else if (shiftValue === "MANUTENÇÃO") {
+          // Scheduled maintenance - yellow
+          shiftCell.className = `shift-cell shift-maintenance`;
+          shiftCell.textContent = shiftValue;
+        } else {
+          // No production - gray
+          shiftCell.className = `shift-cell shift-off`;
+          shiftCell.textContent = "—";
+          // Try to assign an OS to this shift if available
+          if (sortedOS.length > 0) {
+            // Find the most critical OS that matches this line
+            const osForThisLine = sortedOS.find(os => 
+              os.Linha && os.Linha.includes(line.linha.split(':')[0]) // Match line name prefix
+            );
+            if (osForThisLine) {
+              // Check if this OS hasn't been scheduled yet in this shift
+              const osScheduled = Array.from(shiftsContainer.querySelectorAll('.os-scheduled')).some(
+                cell => cell.textContent.includes(osForThisLine.TAG)
+              );
+              if (!osScheduled) {
+                const osDiv = document.createElement("div");
+                osDiv.className = "os-item os-scheduled";
+                // Format the OS info
+                const osInfo = `${osForThisLine.TAG} - ${osForThisLine.TecnicosElegiveis || 'Técnico não disponível'}`;
+                osDiv.textContent = osInfo;
+                // Change background to indicate scheduled maintenance
+                shiftCell.className = `shift-cell shift-scheduled`;
+                shiftCell.appendChild(osDiv);
+                // Remove this OS from the sorted list to prevent double scheduling
+                const index = sortedOS.indexOf(osForThisLine);
+                if (index > -1) {
+                  sortedOS.splice(index, 1);
+                }
+              }
+            }
+          }
+        }
+        shiftsContainer.appendChild(shiftCell);
+      });
+      dayCell.appendChild(shiftsContainer);
+      row.appendChild(dayCell);
+    }
+    calendarBody.appendChild(row);
+  });
+  // Add remaining OS to a summary row if needed
+  if (sortedOS.length > 0) {
+    const summaryRow = document.createElement("tr");
+    const summaryHeader = document.createElement("td");
+    summaryHeader.textContent = "OS Restantes";
+    summaryHeader.className = "border p-2 bg-gray-100 font-medium";
+    summaryRow.appendChild(summaryHeader);
+    const summaryCell = document.createElement("td");
+    summaryCell.colSpan = 7;
+    summaryCell.className = "border p-2 bg-blue-50";
+    sortedOS.forEach(os => {
+      const osDiv = document.createElement("div");
+      osDiv.className = "os-item";
+      osDiv.textContent = `${os.TAG} - ${os.TecnicosElegiveis || 'Técnico não disponível'}`;
+      summaryCell.appendChild(osDiv);
+    });
+    summaryRow.appendChild(summaryCell);
+    calendarBody.appendChild(summaryRow);
+  }
+}
+/* Main process */
+async function processAll(){
+  try {
+    console.clear();
+    console.log("=== Starting processing ===");
+    const critRows = await readXLSX(document.getElementById("criticidadeFile").files[0]);
+    const totvsRows = await readXLSX(document.getElementById("totvsFile").files[0]);
+    const tecRows = await readXLSX(document.getElementById("tecnicosFile").files[0]);
+    const funciRows = await readXLSX(document.getElementById("funciFile").files[0]);
+    console.log("Files loaded: ", { critRows: critRows.length, totvsRows: totvsRows.length, tecRows: tecRows.length, funciRows: funciRows.length });
+    buildCritMap(critRows);
+    buildFunciMaps(funciRows);
+    buildTecDisponiveis(tecRows);
+    let merged = mergeDataTOTVS(totvsRows);
+    merged = mergeDuplicateTags(merged);
+    merged = addTecnicosDisponiveisEEligiveis(merged);
+    merged = sortByCriticidadeAndBacklog(merged);
+    console.log("Final merged sample (20):", merged.slice(0,20));
+    displayResults(merged);
+    // Load PCP schedule and generate calendar after processing
+    setTimeout(() => {
+      loadPCPSchedule();
+    }, 100);
+  } catch(err){
+    console.error("Erro no processamento:", err);
+    alert("Erro no processamento — verifique console: " + (err.message || err));
+  }
+}
+</script>
+</body>
+</html>
+
